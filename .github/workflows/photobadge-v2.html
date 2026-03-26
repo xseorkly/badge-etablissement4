@@ -1,0 +1,1183 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PhotoBadge V2</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
+<style>
+:root{
+  --ink:#0a0a0a;--paper:#f5f0e8;--cream:#ede8dc;
+  --blue:#1a4a8a;--blue-l:#5b8ec4;--red:#c0392b;
+  --sage:#4a6741;--gold:#c8973a;--border:rgba(10,10,10,0.12);
+  --c1:#1a4a8a;--c2:#c0392b;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--paper);color:var(--ink);font-family:'DM Mono',monospace;min-height:100vh;}
+
+/* ══ SETUP ══ */
+#setupScreen{position:static;width:100%;min-height:100vh;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#0a1628,#1a4a8a,#0a1628);padding:2rem 1rem;}
+.setup-card{background:white;border-radius:8px;padding:2rem;max-width:500px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,0.4);}
+.setup-card h2{font-family:'DM Serif Display',serif;font-size:1.5rem;color:var(--blue);margin-bottom:0.2rem;text-align:center;}
+.setup-sub{text-align:center;font-size:0.6rem;letter-spacing:0.15em;text-transform:uppercase;color:rgba(10,10,10,0.4);margin-bottom:1.2rem;}
+.sf{margin-bottom:0.9rem;}
+.sf label{display:block;font-size:0.57rem;letter-spacing:0.15em;text-transform:uppercase;color:rgba(10,10,10,0.42);margin-bottom:0.3rem;}
+.sf input,.sf select{width:100%;padding:0.6rem 0.8rem;border:1.5px solid rgba(10,10,10,0.15);border-radius:4px;font-family:'DM Mono',monospace;font-size:0.85rem;color:var(--ink);outline:none;}
+.sf input:focus{border-color:var(--blue);}
+.sf input::placeholder{color:rgba(10,10,10,0.25);}
+.crow{display:flex;gap:0.5rem;align-items:center;}
+.crow input[type=color]{width:40px;height:34px;border:1.5px solid var(--border);border-radius:4px;cursor:pointer;padding:2px;}
+.crow span{font-size:0.6rem;color:rgba(10,10,10,0.42);}
+.logo-tabs{display:flex;gap:0.4rem;margin-bottom:0.4rem;}
+.ltab{padding:0.32rem 0.8rem;font-family:'DM Mono',monospace;font-size:0.58rem;letter-spacing:0.1em;text-transform:uppercase;border:1.5px solid var(--border);border-radius:3px;cursor:pointer;background:white;color:rgba(10,10,10,0.45);}
+.ltab.active{background:var(--blue);color:white;border-color:var(--blue);}
+#logoUpZone{border:2px dashed rgba(26,74,138,0.3);border-radius:4px;padding:0.9rem;text-align:center;cursor:pointer;font-size:0.62rem;color:rgba(10,10,10,0.4);}
+#setupLogoPreview{max-height:50px;max-width:160px;object-fit:contain;display:none;margin:0.4rem auto 0;}
+.font-sel-row{display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;margin-bottom:0.3rem;}
+.font-sel-row select{flex:1;min-width:120px;padding:0.4rem 0.5rem;border:1.5px solid rgba(10,10,10,0.15);border-radius:4px;font-size:0.75rem;font-family:'DM Mono',monospace;outline:none;}
+.style-btn{width:28px;height:28px;border:1.5px solid rgba(10,10,10,0.2);border-radius:3px;background:white;cursor:pointer;font-size:0.82rem;display:flex;align-items:center;justify-content:center;}
+.style-btn.on{background:var(--blue);border-color:var(--blue);color:white;}
+.prev-box{margin-top:0.3rem;padding:0.4rem 0.65rem;background:rgba(26,74,138,0.04);border:1px dashed rgba(26,74,138,0.22);border-radius:3px;font-size:0.82rem;color:rgba(10,10,10,0.65);min-height:30px;}
+.rgpd-bar{background:rgba(26,74,138,0.88);border-radius:5px;padding:0.5rem 0.8rem;color:white;font-size:0.58rem;display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:0.4rem;text-align:center;margin-bottom:1rem;}
+.rpill{background:rgba(255,255,255,0.18);padding:0.15rem 0.55rem;border-radius:20px;font-weight:700;}
+.btn-start{width:100%;padding:0.9rem;margin-top:1rem;background:var(--blue);color:white;border:none;font-family:'DM Mono',monospace;font-size:0.7rem;letter-spacing:0.18em;text-transform:uppercase;cursor:pointer;border-radius:4px;}
+.btn-start:hover{background:#1e5aa0;}
+
+/* ══ APP ══ */
+#appScreen{display:none;}
+header{padding:0.85rem 1.4rem;border-bottom:3px solid var(--c2);display:flex;align-items:center;gap:0.9rem;background:var(--c1);color:white;}
+#hdrLogo{height:40px;object-fit:contain;background:white;padding:2px 6px;border-radius:2px;display:none;}
+.hdr-t{flex:1;}
+.hdr-t h1{font-family:'DM Serif Display',serif;font-size:1.5rem;line-height:1;}
+.hdr-t h1 span{color:#ffb3a7;}
+.hdr-t .sub{font-size:0.5rem;letter-spacing:0.13em;text-transform:uppercase;opacity:0.7;margin-top:1px;}
+.hdr-btns{display:flex;gap:0.4rem;}
+.btn-hdr{background:rgba(255,255,255,0.18);border:1px solid rgba(255,255,255,0.28);color:white;padding:0.35rem 0.68rem;font-family:'DM Mono',monospace;font-size:0.58rem;letter-spacing:0.08em;text-transform:uppercase;cursor:pointer;border-radius:3px;}
+.btn-hdr:hover{background:rgba(255,255,255,0.28);}
+#rgpdBar{background:linear-gradient(135deg,#1a4a8a,#1e5aa0);border-bottom:2px solid var(--c2);padding:0.48rem 1.4rem;display:flex;align-items:center;gap:0.7rem;font-size:0.62rem;color:white;flex-wrap:wrap;justify-content:center;text-align:center;}
+.rtag{background:rgba(255,255,255,0.18);padding:0.18rem 0.6rem;border-radius:20px;font-weight:700;}
+
+main{max-width:1200px;margin:0 auto;padding:1.4rem;display:grid;grid-template-columns:350px 1fr;gap:1.4rem;align-items:start;}
+@media(max-width:780px){main{grid-template-columns:1fr;padding:0.9rem;}}
+.panel{background:var(--cream);border:1px solid var(--border);border-radius:2px;box-shadow:3px 3px 0 rgba(10,10,10,0.05);overflow:hidden;margin-bottom:1.2rem;}
+.panel:last-child{margin-bottom:0;}
+.ph{padding:0.6rem 1rem;border-bottom:1px solid var(--border);font-size:0.54rem;letter-spacing:0.17em;text-transform:uppercase;color:rgba(10,10,10,0.38);display:flex;align-items:center;justify-content:space-between;}
+.ph::before{content:'';width:5px;height:5px;border-radius:50%;background:var(--blue);margin-right:0.5rem;flex-shrink:0;}
+.ph-left{display:flex;align-items:center;}
+.pb{padding:0.9rem;}
+
+/* Import Excel */
+#dropZone{border:2px dashed rgba(26,74,138,0.3);border-radius:4px;padding:1.3rem 1rem;text-align:center;cursor:pointer;background:rgba(26,74,138,0.03);}
+#dropZone:hover{background:rgba(26,74,138,0.07);}
+#dropZone .dz-ico{font-size:2rem;margin-bottom:0.4rem;}
+#dropZone p{font-size:0.65rem;letter-spacing:0.05em;text-transform:uppercase;color:rgba(10,10,10,0.38);}
+#dropZone small{font-size:0.58rem;color:rgba(10,10,10,0.28);}
+#xlsInfo{display:none;margin-top:0.7rem;padding:0.5rem 0.7rem;background:rgba(74,103,65,0.1);border:1px solid rgba(74,103,65,0.22);border-radius:3px;font-size:0.62rem;color:var(--sage);}
+.hint-box{margin-top:0.65rem;padding:0.5rem 0.7rem;background:rgba(26,74,138,0.05);border:1px solid rgba(26,74,138,0.13);border-radius:3px;font-size:0.58rem;color:rgba(10,10,10,0.5);line-height:1.8;}
+#classSel{display:none;margin-top:0.8rem;}
+#classSel .label{font-size:0.54rem;letter-spacing:0.14em;text-transform:uppercase;color:rgba(10,10,10,0.38);margin-bottom:0.35rem;}
+.ctabs{display:flex;flex-wrap:wrap;gap:0.3rem;}
+.ctab{padding:0.28rem 0.65rem;font-family:'DM Mono',monospace;font-size:0.62rem;letter-spacing:0.06em;border:1.5px solid var(--border);border-radius:3px;cursor:pointer;background:white;color:rgba(10,10,10,0.5);}
+.ctab:hover{border-color:var(--blue);color:var(--blue);}
+.ctab.on{background:var(--blue);color:white;border-color:var(--blue);}
+.ctab .cn{font-size:0.52rem;opacity:0.7;margin-left:0.2rem;}
+
+/* Liste élèves */
+.s-search{width:100%;padding:0.5rem 0.7rem;background:var(--paper);border:1px solid var(--border);border-radius:2px;font-family:'DM Mono',monospace;font-size:0.8rem;color:var(--ink);outline:none;margin-bottom:0.5rem;}
+.s-search:focus{border-color:var(--blue);}
+.s-list{max-height:400px;overflow-y:auto;}
+.s-row{display:flex;align-items:center;gap:0.55rem;padding:0.5rem 0.7rem;border-bottom:1px solid var(--border);cursor:pointer;}
+.s-row:last-child{border-bottom:none;}
+.s-row:hover{background:rgba(26,74,138,0.05);}
+.s-row.sel{background:rgba(26,74,138,0.1);border-left:3px solid var(--blue);}
+.s-row.done{background:rgba(74,103,65,0.05);}
+.s-photo{width:34px;height:34px;border-radius:50%;object-fit:cover;border:2px solid var(--blue-l);flex-shrink:0;}
+.s-nophoto{width:34px;height:34px;border-radius:50%;background:#dde8f5;border:2px solid var(--border);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:0.9rem;color:rgba(10,10,10,0.22);}
+.s-num{font-size:0.56rem;color:rgba(10,10,10,0.28);min-width:20px;}
+.s-inf{flex:1;min-width:0;}
+.s-name{font-size:0.8rem;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.s-name.faded{color:rgba(10,10,10,0.4);}
+.s-meta{font-size:0.56rem;color:rgba(10,10,10,0.38);margin-top:1px;}
+.s-badge{font-size:0.58rem;font-weight:700;color:var(--red);min-width:28px;text-align:right;}
+.s-dot{width:18px;height:18px;border-radius:50%;border:2px solid var(--border);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:0.62rem;}
+.s-dot.done{background:var(--sage);border-color:var(--sage);color:white;}
+.s-dot.sel{background:var(--blue);border-color:var(--blue);color:white;animation:pulse 1.5s infinite;}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(26,74,138,0.4);}50%{box-shadow:0 0 0 4px rgba(26,74,138,0);}}
+.s-stats{display:flex;gap:0.9rem;font-size:0.58rem;color:rgba(10,10,10,0.42);padding:0.38rem 0.7rem;background:var(--cream);border-top:1px solid var(--border);}
+
+/* Droite */
+.right-col{display:flex;flex-direction:column;}
+.sel-card{background:var(--blue);color:white;padding:0.8rem 1rem;display:none;margin-bottom:1.2rem;border-radius:2px;}
+.sel-card .sc-name{font-family:'DM Serif Display',serif;font-size:1.3rem;}
+.sel-card .sc-meta{font-size:0.6rem;opacity:0.72;margin-top:0.25rem;}
+.sel-card .sc-extra{font-size:0.68rem;font-weight:700;color:#ffb3a7;margin-top:0.3rem;}
+
+/* Caméra */
+.cam-frame{position:relative;width:100%;aspect-ratio:4/3;background:var(--ink);overflow:hidden;cursor:pointer;}
+.cam-frame::before,.cam-frame::after{content:'';position:absolute;width:15px;height:15px;border-color:var(--blue-l);border-style:solid;z-index:10;}
+.cam-frame::before{top:7px;left:7px;border-width:2px 0 0 2px;}
+.cam-frame::after{bottom:7px;right:7px;border-width:0 2px 2px 0;}
+#vidEl{width:100%;height:100%;object-fit:cover;display:block;}
+#canvEl{display:none;}
+.cam-ph{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0.6rem;color:rgba(245,240,232,0.32);font-size:0.6rem;letter-spacing:0.08em;text-transform:uppercase;}
+.cam-ph svg{width:36px;height:36px;opacity:0.22;}
+.flash{position:absolute;inset:0;background:white;opacity:0;pointer-events:none;z-index:20;transition:opacity 0.05s;}
+.flash.on{opacity:1;}
+#btnSwitch{display:none;position:absolute;top:7px;right:7px;z-index:15;background:rgba(0,0,0,0.5);border:none;border-radius:50%;width:32px;height:32px;cursor:pointer;color:white;font-size:1rem;align-items:center;justify-content:center;}
+.cam-btns{display:flex;gap:0.45rem;margin-top:0.55rem;}
+.btn-cap{flex:1;padding:0.72rem;background:var(--blue);color:white;border:none;font-family:'DM Mono',monospace;font-size:0.62rem;letter-spacing:0.11em;text-transform:uppercase;cursor:pointer;}
+.btn-cap:disabled{background:rgba(10,10,10,0.16);cursor:not-allowed;}
+.btn-cap:hover:not(:disabled){background:#1e5aa0;}
+.btn-mode{padding:0.72rem 0.85rem;background:var(--blue-l);color:white;border:none;font-family:'DM Mono',monospace;font-size:0.8rem;cursor:pointer;}
+.btn-mode:hover{background:#4a7db3;}
+#upZone{display:none;margin-top:0.55rem;border:2px dashed var(--blue-l);padding:1.1rem;text-align:center;cursor:pointer;background:rgba(26,74,138,0.03);}
+#upZone p{font-size:0.62rem;letter-spacing:0.05em;text-transform:uppercase;color:rgba(10,10,10,0.38);}
+#upPrev{display:none;max-width:100%;max-height:140px;object-fit:contain;margin-top:0.45rem;}
+
+/* Actions sous caméra */
+.act-wrap{margin-top:0.75rem;display:flex;flex-direction:column;gap:0.42rem;}
+.btn-a{padding:0.72rem;border:none;font-family:'DM Mono',monospace;font-size:0.62rem;letter-spacing:0.11em;text-transform:uppercase;cursor:pointer;width:100%;}
+.btn-a:disabled{opacity:0.25;cursor:not-allowed;}
+.btn-validate{background:#4a6741;color:white;display:none;}
+.btn-validate:hover:not(:disabled){background:#3d5736;}
+.btn-gen{background:var(--blue);color:white;}
+.btn-gen:hover:not(:disabled){background:#1e5aa0;}
+.btn-skip{background:var(--red);color:white;}
+.btn-skip:hover:not(:disabled){background:#a93226;}
+.status-msg{padding:0.5rem 0.75rem;font-size:0.62rem;border-radius:2px;display:none;line-height:1.6;}
+.status-msg.ok{display:block;background:rgba(74,103,65,0.1);border:1px solid rgba(74,103,65,0.24);color:var(--sage);}
+.status-msg.err{display:block;background:rgba(192,57,43,0.07);border:1px solid rgba(192,57,43,0.18);color:var(--red);}
+
+/* Radios DP/EXT sortie */
+.radio-group{display:flex;gap:0.35rem;}
+.ro{display:flex;align-items:center;gap:0.38rem;cursor:pointer;padding:0.28rem 0.5rem;border:1.5px solid var(--border);border-radius:3px;background:var(--paper);font-size:0.68rem;}
+.ro:hover{border-color:var(--blue);}
+.ro:has(input:checked){border-color:var(--red);background:rgba(192,57,43,0.04);}
+.ro input[type=radio]{accent-color:var(--red);width:12px;height:12px;}
+.ro-dp,.ro-ext{font-weight:800;color:var(--red);}
+.ro-oui{font-weight:800;color:var(--sage);}
+.ro-non{font-weight:800;color:var(--red);}
+
+/* Aperçu badge */
+#badgeCanvas{width:100%;display:block;border:1px solid var(--border);background:white;}
+
+/* Badges générés */
+.full{grid-column:1/-1;}
+.badge-acts{display:flex;align-items:center;gap:0.7rem;flex-wrap:wrap;margin-bottom:0.8rem;}
+.bcnt{font-size:0.6rem;color:rgba(10,10,10,0.4);}
+.btn-pdf{padding:0.58rem 1rem;color:white;border:none;font-family:'DM Mono',monospace;font-size:0.6rem;letter-spacing:0.09em;text-transform:uppercase;cursor:pointer;border-radius:2px;display:inline-flex;align-items:center;gap:0.35rem;}
+.btn-pdf:disabled{background:rgba(10,10,10,0.16);cursor:not-allowed;}
+.bp-prev{background:#e67e22;}.bp-prev:hover:not(:disabled){background:#ca6f1e;}
+.bp-dl{background:var(--red);}.bp-dl:hover:not(:disabled){background:#a93226;}
+.bp-clr{background:rgba(10,10,10,0.28);}.bp-clr:hover{background:rgba(10,10,10,0.45);}
+.badge-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:0.7rem;}
+.b-thumb{border:1px solid var(--border);border-radius:2px;overflow:hidden;background:white;position:relative;animation:fi 0.3s ease;}
+.b-thumb img{width:100%;display:block;}
+.b-lbl{padding:0.28rem 0.48rem;font-size:0.54rem;letter-spacing:0.04em;color:rgba(10,10,10,0.48);border-top:1px solid var(--border);background:var(--cream);}
+.b-rm{position:absolute;top:4px;right:4px;width:19px;height:19px;background:rgba(192,57,43,0.8);color:white;border:none;border-radius:50%;font-size:0.65rem;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+@keyframes fi{from{opacity:0;transform:translateY(-3px);}to{opacity:1;transform:translateY(0);}}
+@keyframes blink{0%,80%,100%{opacity:0;}40%{opacity:1;}}
+.ld span{animation:blink 1.4s infinite both;}
+.ld span:nth-child(2){animation-delay:.2s;}.ld span:nth-child(3){animation-delay:.4s;}
+::-webkit-scrollbar{width:5px;}
+::-webkit-scrollbar-track{background:var(--cream);}
+::-webkit-scrollbar-thumb{background:var(--blue-l);border-radius:3px;}
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════ -->
+<!-- SETUP                                          -->
+<!-- ══════════════════════════════════════════════ -->
+<div id="setupScreen">
+<div class="setup-card">
+  <div style="text-align:center;margin-bottom:1rem;">
+    <svg width="140" height="90" viewBox="0 0 680 260" xmlns="http://www.w3.org/2000/svg">
+      <text x="340" y="50" font-family="Arial,sans-serif" font-size="70" font-weight="900" fill="#1a4a8a" text-anchor="middle" letter-spacing="4">PHOTO</text>
+      <text x="340" y="120" font-family="Arial,sans-serif" font-size="70" font-weight="900" fill="#c0392b" text-anchor="middle" letter-spacing="4">BADGE</text>
+      <text x="340" y="148" font-family="Arial,sans-serif" font-size="22" font-weight="700" fill="#1a4a8a" text-anchor="middle" letter-spacing="6">V2</text>
+      <text x="340" y="175" font-family="Arial,sans-serif" font-size="11" fill="#888" text-anchor="middle" letter-spacing="3">GÉNÉRATEUR PAR LISTE EXCEL</text>
+    </svg>
+  </div>
+  <h2>⚙ Configuration</h2>
+  <p class="setup-sub">Paramétrez votre établissement</p>
+  <div class="rgpd-bar">
+    <span class="rpill">🔒 100% RGPD</span>
+    <span>Tout en local · Aucune donnée envoyée · Hors ligne</span>
+  </div>
+
+  <div class="sf">
+    <label>Nom de l'établissement</label>
+    <div class="font-sel-row">
+      <select id="fSchool" onchange="updatePrev('school')">
+        <option value="Arial">Arial</option><option value="Times New Roman">Times New Roman</option>
+        <option value="Georgia">Georgia</option><option value="Courier New">Courier New</option>
+        <option value="Trebuchet MS">Trebuchet MS</option><option value="Calibri">Calibri</option>
+      </select>
+      <button class="style-btn" id="bSchoolB" onclick="toggleStyle('school','bold')"><strong>G</strong></button>
+      <button class="style-btn" id="bSchoolI" onclick="toggleStyle('school','italic')"><em>I</em></button>
+      <button class="style-btn" id="bSchoolU" onclick="toggleStyle('school','under')"><u>S</u></button>
+    </div>
+    <input type="text" id="schoolName" placeholder="Ex : Lycée Français Pierre Loti" oninput="updatePrev('school')">
+    <div class="prev-box" id="prevSchool">Nom de l'établissement</div>
+  </div>
+
+  <div class="sf">
+    <label>Ville · Pays</label>
+    <div class="font-sel-row">
+      <select id="fCity" onchange="updatePrev('city')">
+        <option value="Arial">Arial</option><option value="Times New Roman">Times New Roman</option>
+        <option value="Georgia">Georgia</option><option value="Courier New">Courier New</option>
+        <option value="Trebuchet MS">Trebuchet MS</option><option value="Calibri">Calibri</option>
+      </select>
+      <button class="style-btn" id="bCityB" onclick="toggleStyle('city','bold')"><strong>G</strong></button>
+      <button class="style-btn" id="bCityI" onclick="toggleStyle('city','italic')"><em>I</em></button>
+      <button class="style-btn" id="bCityU" onclick="toggleStyle('city','under')"><u>S</u></button>
+    </div>
+    <input type="text" id="cityName" placeholder="Ex : Istanbul · Turquie" oninput="updatePrev('city')">
+    <div class="prev-box" id="prevCity">Ville · Pays</div>
+  </div>
+
+  <div class="sf">
+    <label>Année scolaire</label>
+    <div class="font-sel-row">
+      <select id="fYear" onchange="updatePrev('year')">
+        <option value="Arial">Arial</option><option value="Times New Roman">Times New Roman</option>
+        <option value="Georgia">Georgia</option><option value="Courier New">Courier New</option>
+        <option value="Trebuchet MS">Trebuchet MS</option><option value="Calibri">Calibri</option>
+      </select>
+      <button class="style-btn" id="bYearB" onclick="toggleStyle('year','bold')"><strong>G</strong></button>
+      <button class="style-btn" id="bYearI" onclick="toggleStyle('year','italic')"><em>I</em></button>
+      <button class="style-btn" id="bYearU" onclick="toggleStyle('year','under')"><u>S</u></button>
+    </div>
+    <input type="text" id="yearVal" placeholder="Ex : 2025–2026" oninput="updatePrev('year')">
+    <div class="prev-box" id="prevYear">Année scolaire</div>
+  </div>
+
+  <div class="sf">
+    <label>Logo</label>
+    <div class="logo-tabs">
+      <button class="ltab active" id="ltUrl" onclick="switchLogo('url')">🔗 URL</button>
+      <button class="ltab" id="ltUp" onclick="switchLogo('up')">📁 Upload</button>
+    </div>
+    <div id="lUrlP"><input type="url" id="logoUrl" placeholder="https://..."></div>
+    <div id="lUpP" style="display:none;">
+      <div id="logoUpZone" onclick="document.getElementById('logoFile').click()">🖼 Cliquer pour choisir</div>
+      <input type="file" id="logoFile" accept="image/*" style="display:none;">
+    </div>
+    <img id="setupLogoPreview" alt="">
+  </div>
+
+  <div class="sf">
+    <label>Couleur principale (bande haut)</label>
+    <div class="crow">
+      <input type="color" id="col1" value="#1a4a8a">
+      <span>Bande supérieure, textes et cadre photo</span>
+    </div>
+  </div>
+  <div class="sf">
+    <label>Couleur secondaire (bande bas)</label>
+    <div class="crow">
+      <input type="color" id="col2" value="#c0392b">
+      <span>Bande inférieure et accents</span>
+    </div>
+  </div>
+
+  <button class="btn-start" onclick="saveAndStart()">✓ &nbsp; Démarrer PhotoBadge V2</button>
+</div>
+</div>
+
+<!-- ══════════════════════════════════════════════ -->
+<!-- APP                                            -->
+<!-- ══════════════════════════════════════════════ -->
+<div id="appScreen">
+  <header>
+    <svg width="42" height="52" viewBox="0 0 110 180" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0;">
+      <rect x="0" y="0" width="110" height="44" rx="12" fill="rgba(255,255,255,0.9)"/>
+      <rect x="0" y="32" width="110" height="12" fill="rgba(255,255,255,0.9)"/>
+      <rect x="0" y="44" width="110" height="96" fill="white"/>
+      <rect x="0" y="140" width="110" height="40" rx="12" fill="#c0392b"/>
+      <rect x="0" y="140" width="110" height="20" fill="#c0392b"/>
+      <g transform="translate(18,10)"><rect x="0" y="2" width="22" height="16" rx="2.5" fill="none" stroke="#1a4a8a" stroke-width="2"/><circle cx="11" cy="10" r="4" fill="none" stroke="#1a4a8a" stroke-width="2"/><rect x="7" y="0" width="8" height="4" rx="1" fill="#1a4a8a"/></g>
+      <text x="65" y="33" font-family="Arial,sans-serif" font-size="11" font-weight="800" fill="#1a4a8a" text-anchor="middle">PB</text>
+      <rect x="8" y="50" width="44" height="58" rx="3" fill="#dde8f5"/>
+      <circle cx="30" cy="70" r="13" fill="#b8cce0"/>
+      <ellipse cx="30" cy="100" rx="18" ry="11" fill="#b8cce0"/>
+      <rect x="58" y="52" width="44" height="18" rx="3" fill="#1a4a8a"/>
+      <text x="80" y="65" font-family="Arial,sans-serif" font-size="10" font-weight="700" fill="white" text-anchor="middle">6A</text>
+    </svg>
+    <img id="hdrLogo" src="" alt="" crossorigin="anonymous">
+    <div class="hdr-t">
+      <h1>PHOTO<span>BADGE</span> <small style="font-size:0.65rem;opacity:0.65;">V2</small></h1>
+      <div class="sub" id="hdrSub"></div>
+    </div>
+    <div class="hdr-btns">
+      <button class="btn-hdr" onclick="openSettings()">⚙ Paramètres</button>
+    </div>
+  </header>
+
+  <div id="rgpdBar">
+    <span class="rtag">🔒 100% RGPD</span>
+    <span>Aucune donnée envoyée · Fonctionne hors ligne · Tout reste sur votre appareil</span>
+    <button onclick="this.parentElement.style.display='none'" style="background:rgba(255,255,255,0.18);border:1px solid rgba(255,255,255,0.28);border-radius:50%;cursor:pointer;color:white;padding:0 0.38rem;line-height:1.55;margin-left:0.5rem;">✕</button>
+  </div>
+
+  <main>
+    <!-- GAUCHE -->
+    <div>
+      <!-- Import Excel -->
+      <div class="panel">
+        <div class="ph"><div class="ph-left">Import liste élèves</div></div>
+        <div class="pb">
+          <div id="dropZone" onclick="document.getElementById('xlsFile').click()" ondragover="ev.preventDefault();this.style.background='rgba(26,74,138,0.08)'" ondrop="doDrop(event)">
+            <div class="dz-ico">📊</div>
+            <p>Cliquez ou glissez votre fichier Excel</p>
+            <small>.xlsx · .xls</small>
+          </div>
+          <input type="file" id="xlsFile" accept=".xlsx,.xls" style="display:none;">
+          <div id="xlsInfo"></div>
+          <div class="hint-box">
+            📋 Colonnes attendues :<br>
+            <strong>Nom · Prénom · Classe · Regime · Sortie</strong><br>
+            Régime : <em>DP</em> ou <em>EXT</em> &nbsp;|&nbsp; Sortie : <em>OUI</em> ou <em>NON</em>
+          </div>
+          <div id="classSel">
+            <div class="label">Filtrer par classe</div>
+            <div class="ctabs" id="ctabsWrap"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Liste -->
+      <div class="panel" id="listPanel" style="display:none;">
+        <div class="ph">
+          <div class="ph-left">Élèves</div>
+          <span id="listClsLabel" style="font-size:0.58rem;color:var(--blue);font-weight:600;"></span>
+        </div>
+        <div class="pb" style="padding:0.6rem;">
+          <input class="s-search" id="sSearch" placeholder="🔍 Rechercher..." oninput="filterList()">
+          <div class="s-list" id="sList"></div>
+          <div class="s-stats" id="sStats"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- DROITE -->
+    <div class="right-col">
+      <!-- Élève actif -->
+      <div class="sel-card" id="selCard">
+        <div class="sc-name" id="scName">—</div>
+        <div class="sc-meta" id="scMeta"></div>
+        <div class="sc-extra" id="scExtra"></div>
+      </div>
+
+      <!-- Caméra + actions -->
+      <div class="panel">
+        <div class="ph"><div class="ph-left">Photo</div></div>
+        <div class="pb">
+          <div class="cam-frame" id="camFrame">
+            <div class="cam-ph" id="camPh">
+              <svg fill="none" stroke="currentColor" stroke-width="1.2" viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+              <span>Cliquez pour activer la caméra</span>
+            </div>
+            <video id="vidEl" autoplay playsinline muted></video>
+            <canvas id="canvEl"></canvas>
+            <div class="flash" id="flash"></div>
+            <button id="btnSwitch" title="Changer caméra">⟳</button>
+          </div>
+          <div class="cam-btns">
+            <button class="btn-cap" id="btnCap" disabled>⊙ &nbsp; Prendre la photo</button>
+            <button class="btn-mode" id="btnMode" title="Importer">📁</button>
+          </div>
+          <div id="upZone">
+            <input type="file" id="upFile" accept="image/*" style="display:none;">
+            <div id="upInner"><div style="font-size:1.6rem;margin-bottom:0.3rem;">🖼</div><p>Cliquez ou glissez une image</p></div>
+            <img id="upPrev" alt="">
+          </div>
+          <!-- ACTIONS -->
+          <div class="act-wrap">
+            <div class="status-msg" id="statusMsg"></div>
+            <button class="btn-a btn-validate" id="btnValidate">✅ &nbsp; Valider la photo</button>
+            <button class="btn-a btn-gen" id="btnGen" disabled>🪪 &nbsp; Générer et ajouter au PDF</button>
+            <button class="btn-a btn-skip" id="btnSkip" disabled>⏭ &nbsp; Passer cet élève</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Aperçu badge -->
+      <div class="panel">
+        <div class="ph"><div class="ph-left">Aperçu du badge</div></div>
+        <div class="pb">
+          <canvas id="badgeCanvas" width="320" height="240" style="width:100%;display:block;border:1px solid var(--border);background:white;margin-bottom:0.7rem;"></canvas>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.55rem;">
+            <div>
+              <div style="font-size:0.52rem;letter-spacing:0.14em;text-transform:uppercase;color:rgba(10,10,10,0.36);margin-bottom:0.28rem;">Régime</div>
+              <div class="radio-group">
+                <label class="ro"><input type="radio" name="regime" id="rDP" value="DP" onchange="drawPreview()"><span class="ro-dp">DP</span></label>
+                <label class="ro"><input type="radio" name="regime" id="rEXT" value="EXT" onchange="drawPreview()" checked><span class="ro-ext">EXT</span></label>
+              </div>
+            </div>
+            <div>
+              <div style="font-size:0.52rem;letter-spacing:0.14em;text-transform:uppercase;color:rgba(10,10,10,0.36);margin-bottom:0.28rem;">Sortie hors EDT</div>
+              <div class="radio-group">
+                <label class="ro"><input type="radio" name="sortie" id="rOui" value="oui" onchange="drawPreview()"><span class="ro-oui">○○</span></label>
+                <label class="ro"><input type="radio" name="sortie" id="rNon" value="non" onchange="drawPreview()" checked><span class="ro-non">■■</span></label>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- BAS : badges -->
+    <div class="panel full" id="badgeSec" style="display:none;">
+      <div class="ph"><div class="ph-left">Badges générés</div></div>
+      <div class="pb">
+        <div class="badge-acts">
+          <span class="bcnt" id="bcnt">0 badge(s)</span>
+          <button class="btn-pdf bp-prev" id="btnPrev" disabled>👁 &nbsp; Visualiser PDF</button>
+          <button class="btn-pdf bp-dl" id="btnDL" disabled>🖨 &nbsp; Télécharger PDF</button>
+          <button class="btn-pdf bp-clr" id="btnClr">🗑 &nbsp; Tout effacer</button>
+        </div>
+        <div class="badge-grid" id="bGrid"></div>
+      </div>
+    </div>
+  </main>
+
+  <footer style="margin-top:1.5rem;padding:1rem 1.4rem;background:var(--blue);color:white;font-size:0.58rem;letter-spacing:0.05em;line-height:1.8;text-align:center;opacity:0.92;">
+    PhotoBadge V2 — Réalisé avec <strong>Claude.ai</strong> (Anthropic) &nbsp;·&nbsp;
+    <strong>Fehmi KLABI</strong> — Professeur de Technologie · EF2D · AEFE Zone Europe du Sud-Est
+  </footer>
+</div>
+
+<script>
+// ════════════════════════════════════════
+// CONFIG
+// ════════════════════════════════════════
+let CFG = {
+  school:'', city:'', year:'',
+  logoUrl:'', logoData:'',
+  c1:'#1a4a8a', c2:'#c0392b',
+  styles:{
+    school:{font:'Arial', bold:false, italic:false, under:false},
+    city:  {font:'Arial', bold:false, italic:false, under:false},
+    year:  {font:'Arial', bold:false, italic:false, under:false}
+  }
+};
+
+function loadCFG(){
+  try{ const s=localStorage.getItem('pb2_cfg'); if(s){CFG=JSON.parse(s);return true;} }catch(e){}
+  return false;
+}
+function saveCFG(){ localStorage.setItem('pb2_cfg',JSON.stringify(CFG)); }
+
+// ════════════════════════════════════════
+// SETUP : STYLES TYPOGRAPHIE
+// ════════════════════════════════════════
+function toggleStyle(field, prop){
+  CFG.styles[field][prop] = !CFG.styles[field][prop];
+  const ids={school:{bold:'bSchoolB',italic:'bSchoolI',under:'bSchoolU'},city:{bold:'bCityB',italic:'bCityI',under:'bCityU'},year:{bold:'bYearB',italic:'bYearI',under:'bYearU'}};
+  document.getElementById(ids[field][prop]).classList.toggle('on', CFG.styles[field][prop]);
+  updatePrev(field);
+}
+
+function updatePrev(field){
+  const inputIds={school:'schoolName', city:'cityName', year:'yearVal'};
+  const prevIds= {school:'prevSchool', city:'prevCity',  year:'prevYear'};
+  const fontIds= {school:'fSchool',    city:'fCity',     year:'fYear'};
+  const input  = document.getElementById(inputIds[field]);
+  const prev   = document.getElementById(prevIds[field]);
+  const sel    = document.getElementById(fontIds[field]);
+  // Sync font to CFG
+  if(sel) CFG.styles[field].font = sel.value;
+  const s = CFG.styles[field];
+  const text = (input && input.value) || {school:"Nom de l'établissement", city:'Ville · Pays', year:'Année scolaire'}[field];
+  prev.style.fontFamily     = s.font + ',sans-serif';
+  prev.style.fontWeight     = s.bold  ? 'bold'      : 'normal';
+  prev.style.fontStyle      = s.italic? 'italic'    : 'normal';
+  prev.style.textDecoration = s.under ? 'underline' : 'none';
+  prev.textContent = text;
+}
+
+function initStyleButtons(){
+  ['school','city','year'].forEach(f=>{
+    const s=CFG.styles[f];
+    const ids={school:{bold:'bSchoolB',italic:'bSchoolI',under:'bSchoolU'},city:{bold:'bCityB',italic:'bCityI',under:'bCityU'},year:{bold:'bYearB',italic:'bYearI',under:'bYearU'}};
+    const fids={school:'fSchool',city:'fCity',year:'fYear'};
+    document.getElementById(ids[f].bold ).classList.toggle('on',s.bold);
+    document.getElementById(ids[f].italic).classList.toggle('on',s.italic);
+    document.getElementById(ids[f].under).classList.toggle('on',s.under);
+    const sel=document.getElementById(fids[f]);
+    if(sel) sel.value=s.font;
+    updatePrev(f);
+  });
+}
+
+// Logo setup
+let logoMode='url', logoDataURL='';
+function switchLogo(m){
+  logoMode=m;
+  document.getElementById('ltUrl').classList.toggle('active',m==='url');
+  document.getElementById('ltUp').classList.toggle('active',m==='up');
+  document.getElementById('lUrlP').style.display=m==='url'?'block':'none';
+  document.getElementById('lUpP').style.display=m==='up'?'block':'none';
+}
+document.getElementById('logoUrl').addEventListener('input',function(){
+  const p=document.getElementById('setupLogoPreview');
+  if(this.value){p.src=this.value;p.style.display='block';}else p.style.display='none';
+});
+document.getElementById('logoFile').addEventListener('change',function(){
+  const f=this.files[0]; if(!f) return;
+  const r=new FileReader();
+  r.onload=e=>{ logoDataURL=e.target.result; const p=document.getElementById('setupLogoPreview'); p.src=logoDataURL; p.style.display='block'; };
+  r.readAsDataURL(f);
+});
+
+function saveAndStart(){
+  const name=document.getElementById('schoolName').value.trim();
+  if(!name){alert('Entrez le nom de l\'établissement');return;}
+  CFG.school = name;
+  CFG.city   = document.getElementById('cityName').value.trim();
+  CFG.year   = document.getElementById('yearVal').value.trim() || new Date().getFullYear()+'–'+(new Date().getFullYear()+1);
+  CFG.c1     = document.getElementById('col1').value;
+  CFG.c2     = document.getElementById('col2').value;
+  // Sync fonts from selects
+  ['school','city','year'].forEach(f=>{
+    const fids={school:'fSchool',city:'fCity',year:'fYear'};
+    CFG.styles[f].font = document.getElementById(fids[f]).value;
+  });
+  if(logoMode==='url'){ CFG.logoUrl=document.getElementById('logoUrl').value.trim(); CFG.logoData=''; }
+  else { CFG.logoData=logoDataURL; CFG.logoUrl=''; }
+  saveCFG();
+  initApp();
+}
+
+function openSettings(){
+  document.getElementById('schoolName').value=CFG.school;
+  document.getElementById('cityName').value=CFG.city;
+  document.getElementById('yearVal').value=CFG.year;
+  document.getElementById('col1').value=CFG.c1;
+  document.getElementById('col2').value=CFG.c2;
+  if(CFG.logoUrl) document.getElementById('logoUrl').value=CFG.logoUrl;
+  initStyleButtons();
+  document.getElementById('setupScreen').style.display='flex';
+  document.getElementById('appScreen').style.display='none';
+}
+
+// ════════════════════════════════════════
+// INIT APP
+// ════════════════════════════════════════
+let logoImg=null;
+
+function initApp(){
+  document.getElementById('setupScreen').style.display='none';
+  document.getElementById('appScreen').style.display='block';
+  document.documentElement.style.setProperty('--c1',CFG.c1);
+  document.documentElement.style.setProperty('--c2',CFG.c2);
+  document.getElementById('hdrSub').textContent=[CFG.school,CFG.city,CFG.year].filter(Boolean).join('  ·  ');
+  const hl=document.getElementById('hdrLogo');
+  const src=CFG.logoData||CFG.logoUrl;
+  if(src){hl.src=src;hl.style.display='block';}else hl.style.display='none';
+  logoImg=null;
+  if(src){
+    const img=new Image(); img.crossOrigin='anonymous';
+    img.onload=()=>{logoImg=img; drawPreview();};
+    img.onerror=()=>{logoImg=null;};
+    img.src=src;
+  }
+  drawBadge(document.getElementById('badgeCanvas'),null,'','','',null);
+  // Restaurer données
+  restoreStudents();
+  restoreBadges();
+}
+
+// ════════════════════════════════════════
+// EXCEL
+// ════════════════════════════════════════
+let students=[], filtered=[], selClass='TOUS', curStudent=null;
+
+document.getElementById('xlsFile').addEventListener('change',function(){ if(this.files[0])readXLS(this.files[0]); });
+function doDrop(e){
+  e.preventDefault(); document.getElementById('dropZone').style.background='rgba(26,74,138,0.03)';
+  const f=e.dataTransfer.files[0]; if(f)readXLS(f);
+}
+
+function readXLS(file){
+  const r=new FileReader();
+  r.onload=e=>{
+    try{
+      const wb=XLSX.read(e.target.result,{type:'binary'});
+      const ws=wb.Sheets[wb.SheetNames[0]];
+      const rows=XLSX.utils.sheet_to_json(ws,{defval:''});
+      if(!rows.length){showMsg('err','Fichier vide');return;}
+      const norm=s=>String(s).toLowerCase().trim().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+      const keys=Object.keys(rows[0]);
+      const find=(...v)=>keys.find(k=>v.some(x=>norm(k)===norm(x)))||'';
+      const kN=find('nom','name','lastname'); const kP=find('prenom','prénom','firstname');
+      const kC=find('classe','class'); const kR=find('regime','régime'); const kS=find('sortie','autorisation');
+      if(!kN||!kP){showMsg('err','Colonnes Nom / Prénom introuvables');return;}
+      students=rows.map((row,i)=>({
+        id:i, nom:String(row[kN]||'').trim().toUpperCase(), prenom:String(row[kP]||'').trim(),
+        classe:String(row[kC]||'').trim(),
+        regime:String(row[kR]||'EXT').toUpperCase().includes('DP')?'DP':'EXT',
+        sortie:String(row[kS]||'NON').toUpperCase().includes('OUI')?'oui':'non',
+        photoDataUrl:null, badgeDone:false
+      })).filter(s=>s.nom&&s.prenom);
+      document.getElementById('xlsInfo').style.display='block';
+      document.getElementById('xlsInfo').innerHTML=`✅ <strong>${students.length} élèves</strong> importés — <em>${file.name}</em>`;
+      saveStudents();
+      buildClassTabs(); filterList();
+    }catch(err){showMsg('err','Erreur Excel : '+err.message);}
+  };
+  r.readAsBinaryString(file);
+}
+
+function buildClassTabs(){
+  const classes=['TOUS',...new Set(students.map(s=>s.classe).filter(Boolean).sort())];
+  const wrap=document.getElementById('ctabsWrap'); wrap.innerHTML='';
+  classes.forEach(cl=>{
+    const n=cl==='TOUS'?students.length:students.filter(s=>s.classe===cl).length;
+    const b=document.createElement('button');
+    b.className='ctab'+(cl===selClass?' on':'');
+    b.innerHTML=cl+`<span class="cn">(${n})</span>`;
+    b.onclick=()=>{selClass=cl;buildClassTabs();filterList();};
+    wrap.appendChild(b);
+  });
+  document.getElementById('classSel').style.display='block';
+}
+
+function filterList(){
+  const q=document.getElementById('sSearch').value.toLowerCase().trim();
+  filtered=students.filter(s=>{
+    const mc=selClass==='TOUS'||s.classe===selClass;
+    const mq=!q||s.nom.toLowerCase().includes(q)||s.prenom.toLowerCase().includes(q);
+    return mc&&mq;
+  });
+  renderList();
+}
+
+function renderList(){
+  const body=document.getElementById('sList'); body.innerHTML='';
+  document.getElementById('listClsLabel').textContent=selClass==='TOUS'?'':selClass;
+  document.getElementById('listPanel').style.display=filtered.length?'block':'none';
+  filtered.forEach((s,i)=>{
+    const isSel=curStudent&&curStudent.id===s.id;
+    const row=document.createElement('div');
+    row.className='s-row'+(s.badgeDone?' done':'')+(isSel?' sel':'');
+    const sym=s.sortie==='oui'?'○○':'■■';
+    const photoEl=s.photoDataUrl
+      ?`<img class="s-photo" src="${s.photoDataUrl}" alt="">`
+      :`<div class="s-nophoto">👤</div>`;
+    row.innerHTML=`${photoEl}<span class="s-num">${i+1}</span><div class="s-inf"><div class="s-name${s.badgeDone?' faded':''}">${s.nom} ${s.prenom}</div><div class="s-meta">${s.classe||'—'}</div></div><span class="s-badge">${s.regime} ${sym}</span><div class="s-dot${s.badgeDone?' done':isSel?' sel':''}">${s.badgeDone?'✓':isSel?'●':''}</div>`;
+    row.addEventListener('click',()=>selectStudent(s));
+    body.appendChild(row);
+  });
+  const done=students.filter(s=>s.badgeDone).length;
+  document.getElementById('sStats').innerHTML=`<span>Affichés : <strong>${filtered.length}</strong></span><span>Badges : <strong>${done}/${students.length}</strong></span><span>Restants : <strong>${students.length-done}</strong></span>`;
+}
+
+function selectStudent(s){
+  curStudent=s;
+  document.getElementById(s.regime==='DP'?'rDP':'rEXT').checked=true;
+  document.getElementById(s.sortie==='oui'?'rOui':'rNon').checked=true;
+  document.getElementById('selCard').style.display='block';
+  document.getElementById('scName').textContent=s.nom+' '+s.prenom;
+  document.getElementById('scMeta').textContent=(s.classe||'')+(CFG.year?' · '+CFG.year:'');
+  document.getElementById('scExtra').textContent=s.regime+' · '+(s.sortie==='oui'?'○○ Autorisé':'■■ Non autorisé');
+  capBlob=null; photoOK=false;
+  if(upMode){ document.getElementById('upPrev').style.display='none'; document.getElementById('upInner').style.display='block'; document.getElementById('upFile').value=''; }
+  document.getElementById('btnValidate').style.display='none';
+  updateBtns(); drawPreview(); renderList();
+  document.getElementById('badgeCanvas').scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+
+// ════════════════════════════════════════
+// CAMERA
+// ════════════════════════════════════════
+let camStream=null, capBlob=null, photoOK=false, faceMode='user', upMode=false;
+
+const vidEl  =document.getElementById('vidEl');
+const canvEl =document.getElementById('canvEl');
+const camPh  =document.getElementById('camPh');
+const flash  =document.getElementById('flash');
+const btnCap =document.getElementById('btnCap');
+const btnSwitch=document.getElementById('btnSwitch');
+const btnMode=document.getElementById('btnMode');
+const upZone =document.getElementById('upZone');
+const upFile =document.getElementById('upFile');
+const upPrev =document.getElementById('upPrev');
+
+document.getElementById('camFrame').addEventListener('click',e=>{
+  if(e.target===btnSwitch||btnSwitch.contains(e.target))return;
+  if(!camStream&&!upMode)startCam(faceMode);
+});
+btnSwitch.addEventListener('click',e=>{ e.stopPropagation(); startCam(faceMode==='user'?'environment':'user'); });
+
+async function startCam(fm){
+  if(camStream){camStream.getTracks().forEach(t=>t.stop());camStream=null;}
+  try{
+    camStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:fm,width:{ideal:1280},height:{ideal:960}},audio:false});
+    vidEl.srcObject=camStream; faceMode=fm;
+    camPh.style.display='none'; vidEl.style.display='block';
+    btnSwitch.style.display='flex'; btnCap.disabled=false;
+    vidEl.style.transform=fm==='user'?'scaleX(-1)':'scaleX(1)';
+  }catch(err){showMsg('err','Caméra : '+err.message);}
+}
+
+btnCap.addEventListener('click',()=>{
+  if(!camStream)return;
+  canvEl.width=vidEl.videoWidth||640; canvEl.height=vidEl.videoHeight||480;
+  const ctx=canvEl.getContext('2d');
+  if(faceMode==='user'){ctx.translate(canvEl.width,0);ctx.scale(-1,1);}
+  ctx.drawImage(vidEl,0,0); ctx.setTransform(1,0,0,1,0,0);
+  flash.classList.add('on'); setTimeout(()=>flash.classList.remove('on'),150);
+  canvEl.toBlob(blob=>{
+    capBlob=blob; photoOK=false;
+    document.getElementById('btnValidate').style.display='block';
+    updateBtns(); drawPreview();
+    showMsg('ok','✓ Photo prise — cliquez sur Valider');
+  },'image/jpeg',0.93);
+});
+
+btnMode.addEventListener('click',()=>{
+  upMode=!upMode;
+  if(upMode){ if(camStream){camStream.getTracks().forEach(t=>t.stop());camStream=null;} document.getElementById('camFrame').style.display='none'; btnCap.style.display='none'; upZone.style.display='block'; btnMode.textContent='📷'; }
+  else{ document.getElementById('camFrame').style.display='block'; btnCap.style.display='block'; upZone.style.display='none'; upPrev.style.display='none'; btnMode.textContent='📁'; }
+});
+
+upZone.addEventListener('click',()=>upFile.click());
+upZone.addEventListener('dragover',e=>{e.preventDefault();upZone.style.background='rgba(26,74,138,0.09)';});
+upZone.addEventListener('dragleave',()=>{upZone.style.background='rgba(26,74,138,0.03)';});
+upZone.addEventListener('drop',e=>{e.preventDefault();upZone.style.background='rgba(26,74,138,0.03)';const f=e.dataTransfer.files[0];if(f&&f.type.startsWith('image/'))handleImg(f);});
+upFile.addEventListener('change',()=>{if(upFile.files[0])handleImg(upFile.files[0]);});
+
+function handleImg(file){
+  const r=new FileReader();
+  r.onload=e=>{
+    upPrev.src=e.target.result; upPrev.style.display='block';
+    document.getElementById('upInner').style.display='none';
+    const img=new Image();
+    img.onload=()=>{
+      const mW=1280,mH=960; let w=img.width,h=img.height;
+      if(w>mW){h=Math.round(h*mW/w);w=mW;} if(h>mH){w=Math.round(w*mH/h);h=mH;}
+      canvEl.width=w; canvEl.height=h;
+      canvEl.getContext('2d').drawImage(img,0,0,w,h);
+      canvEl.toBlob(blob=>{
+        capBlob=blob; photoOK=false;
+        document.getElementById('btnValidate').style.display='block';
+        updateBtns(); drawPreview();
+        showMsg('ok','✓ Image importée — cliquez sur Valider');
+      },'image/jpeg',0.93);
+    };
+    img.src=e.target.result;
+  };
+  r.readAsDataURL(file);
+}
+
+document.getElementById('btnValidate').addEventListener('click',()=>{
+  photoOK=true;
+  document.getElementById('btnValidate').style.display='none';
+  updateBtns();
+  showMsg('ok','✓ Photo validée — vérifiez l\'aperçu puis générez');
+});
+
+document.getElementById('btnSkip').addEventListener('click',()=>{
+  if(!curStudent)return;
+  showMsg('err','⏭ '+curStudent.nom+' '+curStudent.prenom+' passé');
+  capBlob=null; photoOK=false;
+  document.getElementById('btnValidate').style.display='none';
+  const next=filtered.find(s=>!s.badgeDone&&s.id!==curStudent.id);
+  if(next)selectStudent(next); else{curStudent=null;updateBtns();drawPreview();}
+});
+
+function updateBtns(){
+  const hasPhoto=!!capBlob, hasStu=!!curStudent;
+  document.getElementById('btnGen').disabled=!(hasPhoto&&photoOK&&hasStu);
+  document.getElementById('btnSkip').disabled=!hasStu;
+  if(camStream) btnCap.disabled=false;
+}
+
+// ════════════════════════════════════════
+// DESSIN BADGE
+// ════════════════════════════════════════
+function makeFont(size,field){
+  const s=CFG.styles[field]||{font:'Arial',bold:false,italic:false};
+  return `${s.italic?'italic':'normal'} ${s.bold?'bold':'normal'} ${size}px ${s.font||'Arial'},sans-serif`;
+}
+
+function drawUnderline(ctx,text,x,y,field){
+  const s=CFG.styles[field]||{};
+  if(!s.under)return;
+  const w=ctx.measureText(text).width;
+  const align=ctx.textAlign;
+  let lx=x;
+  if(align==='center')lx=x-w/2;
+  else if(align==='right')lx=x-w;
+  ctx.save(); ctx.strokeStyle=ctx.fillStyle; ctx.lineWidth=1.2;
+  ctx.beginPath(); ctx.moveTo(lx,y+3); ctx.lineTo(lx+w,y+3); ctx.stroke(); ctx.restore();
+}
+
+function drawBadge(cv,blob,nom,prenom,classe,onDone){
+  const W=640,H=480;
+  cv.width=W; cv.height=H;
+  const ctx=cv.getContext('2d');
+  const c1=CFG.c1||'#1a4a8a', c2=CFG.c2||'#c0392b';
+
+  ctx.fillStyle='#fff'; ctx.fillRect(0,0,W,H);
+  ctx.fillStyle=c1; ctx.fillRect(0,0,W,72);
+  ctx.fillStyle=c2; ctx.fillRect(0,H-56,W,56);
+
+  // Logo bande haut gauche
+  if(logoImg){
+    try{
+      const mW=80,mH=52; let lw=logoImg.naturalWidth||80,lh=logoImg.naturalHeight||52;
+      const r=Math.min(mW/lw,mH/lh); lw=Math.round(lw*r); lh=Math.round(lh*r);
+      const lx=10,ly=Math.round((72-lh)/2);
+      ctx.fillStyle='rgba(255,255,255,0.15)'; ctx.fillRect(lx-3,ly-3,lw+6,lh+6);
+      ctx.drawImage(logoImg,lx,ly,lw,lh);
+    }catch(e){}
+  }
+
+  // Textes bande haut
+  const tX=logoImg?Math.round((W+90)/2):W/2;
+  ctx.textAlign='center'; ctx.fillStyle='#fff';
+  ctx.font=makeFont(20,'school');
+  ctx.fillText(CFG.school||'Établissement',tX,28);
+  drawUnderline(ctx,CFG.school||'Établissement',tX,28,'school');
+
+  // Ville + Année sur 1 ligne
+  const sub=[CFG.city,CFG.year].filter(Boolean);
+  if(sub.length){
+    ctx.fillStyle='rgba(255,255,255,0.75)';
+    if(CFG.city&&CFG.year){
+      ctx.font=makeFont(13,'city');
+      ctx.fillText(CFG.city,tX-40,52);
+      drawUnderline(ctx,CFG.city,tX-40,52,'city');
+      ctx.font='12px Arial,sans-serif'; ctx.fillText('  ·  ',tX,52);
+      ctx.font=makeFont(13,'year');
+      ctx.fillText(CFG.year,tX+40,52);
+      drawUnderline(ctx,CFG.year,tX+40,52,'year');
+    } else {
+      const txt=sub[0]; const field=CFG.city?'city':'year';
+      ctx.font=makeFont(13,field); ctx.fillText(txt,tX,52);
+      drawUnderline(ctx,txt,tX,52,field);
+    }
+  }
+
+  const regime=document.querySelector('input[name="regime"]:checked')?.value||'EXT';
+  const sortie=document.querySelector('input[name="sortie"]:checked')?.value||'non';
+  const sortSym=sortie==='oui'?'○○':'■■';
+
+  const render=()=>{
+    const ix=250,iy=88;
+    ctx.fillStyle=c1; ctx.font='bold 62px Arial,sans-serif'; ctx.textAlign='left';
+    ctx.fillText(classe||'—',ix,iy+58);
+    if(classe){
+      const cw=ctx.measureText(classe).width;
+      ctx.font='bold 22px Arial,sans-serif'; ctx.fillStyle=c2;
+      ctx.fillText(regime+' '+sortSym,ix+cw+14,iy+48);
+    }
+    ctx.strokeStyle=c2; ctx.lineWidth=3;
+    ctx.beginPath(); ctx.moveTo(ix,iy+70); ctx.lineTo(W-18,iy+70); ctx.stroke();
+    ctx.fillStyle='#0a0a0a'; ctx.font='bold 28px Arial,sans-serif'; ctx.textAlign='left';
+    ctx.fillText((nom||'').toUpperCase(),ix,iy+108);
+    ctx.font='22px Arial,sans-serif'; ctx.fillStyle='#333';
+    ctx.fillText(prenom||'',ix,iy+140);
+    ctx.font='13px Arial,sans-serif'; ctx.fillStyle='#888';
+    ctx.fillText('Année scolaire '+(CFG.year||''),ix,iy+175);
+    ctx.fillStyle='#fff'; ctx.font='bold 14px Arial,sans-serif'; ctx.textAlign='center';
+    ctx.fillText('CARTE ÉLÈVE  —  NE PAS PLIER',W/2,H-18);
+
+    // Logo bas droite
+    if(logoImg){
+      try{
+        const mW=234,mH=78; let lw=logoImg.naturalWidth||160,lh=logoImg.naturalHeight||56;
+        const r=Math.min(mW/lw,mH/lh); lw=Math.round(lw*r); lh=Math.round(lh*r);
+        const lx=W-lw-14,ly=H-56-lh-10;
+        ctx.fillStyle='rgba(255,255,255,0.92)'; ctx.fillRect(lx-4,ly-3,lw+8,lh+6);
+        ctx.drawImage(logoImg,lx,ly,lw,lh);
+      }catch(e){}
+    }
+
+    // QR code
+    if(nom&&prenom&&classe&&typeof qrcode!=='undefined'){
+      generateQR(nom,prenom,classe,regime,sortie).then(qrUrl=>{
+        if(qrUrl){
+          const qs=160,qx=Math.round((W-qs)/2),qy=H-56-qs-8;
+          ctx.fillStyle='white'; ctx.fillRect(qx-3,qy-3,qs+6,qs+6);
+          ctx.strokeStyle=c1; ctx.lineWidth=2; ctx.strokeRect(qx-3,qy-3,qs+6,qs+6);
+          const qi=new Image();
+          qi.onload=()=>{ ctx.drawImage(qi,qx,qy,qs,qs); if(onDone)onDone(cv.toDataURL('image/jpeg',0.95)); };
+          qi.src=qrUrl;
+        } else { if(onDone)onDone(cv.toDataURL('image/jpeg',0.95)); }
+      });
+    } else { if(onDone)onDone(cv.toDataURL('image/jpeg',0.95)); }
+  };
+
+  if(blob){
+    const url=URL.createObjectURL(blob);
+    const img=new Image();
+    img.onload=()=>{
+      ctx.strokeStyle=c1; ctx.lineWidth=3; ctx.strokeRect(18,86,214,224);
+      const a=img.width/img.height,ta=214/224;
+      let sx=0,sy=0,sw=img.width,sh=img.height;
+      if(a>ta){sw=img.height*ta;sx=(img.width-sw)/2;}else{sh=img.width/ta;sy=(img.height-sh)/2;}
+      ctx.drawImage(img,sx,sy,sw,sh,20,88,210,220);
+      URL.revokeObjectURL(url); render();
+    };
+    img.onerror=()=>{ ctx.fillStyle='#eaeaea'; ctx.fillRect(20,88,210,220); render(); };
+    img.src=url;
+  } else {
+    ctx.fillStyle='#eaeaea'; ctx.fillRect(20,88,210,220);
+    ctx.fillStyle='#bbb'; ctx.font='14px Arial'; ctx.textAlign='center'; ctx.fillText('Photo',125,205);
+    render();
+  }
+}
+
+function drawPreview(){
+  const cv=document.getElementById('badgeCanvas');
+  if(!curStudent){drawBadge(cv,null,'','','',null);return;}
+  drawBadge(cv,capBlob,curStudent.nom,curStudent.prenom,curStudent.classe,null);
+}
+
+// ════════════════════════════════════════
+// QR CODE
+// ════════════════════════════════════════
+function generateQR(nom,prenom,classe,regime,sortie){
+  return new Promise(resolve=>{
+    try{
+      const text=[nom,prenom,classe,regime,sortie==='oui'?'1':'0'].join('|');
+      const qr=qrcode(0,'L'); qr.addData(text); qr.make();
+      const mc=qr.getModuleCount(),size=512,cell=Math.floor(size/mc),off=Math.floor((size-cell*mc)/2);
+      const c=document.createElement('canvas'); c.width=size; c.height=size;
+      const ctx=c.getContext('2d');
+      ctx.fillStyle='#fff'; ctx.fillRect(0,0,size,size);
+      ctx.fillStyle='#000';
+      for(let r=0;r<mc;r++)for(let col=0;col<mc;col++)if(qr.isDark(r,col))ctx.fillRect(off+col*cell,off+r*cell,cell,cell);
+      resolve(c.toDataURL('image/png'));
+    }catch(e){resolve(null);}
+  });
+}
+
+// ════════════════════════════════════════
+// GÉNÉRATION BADGE
+// ════════════════════════════════════════
+let badgeList=[];
+
+document.getElementById('btnGen').addEventListener('click',()=>{
+  if(!capBlob||!curStudent||!photoOK)return;
+  const s=curStudent;
+  document.getElementById('btnGen').disabled=true;
+  document.getElementById('btnGen').innerHTML='<span class="ld">Génération<span>.</span><span>.</span><span>.</span></span>';
+
+  drawBadge(document.createElement('canvas'),capBlob,s.nom,s.prenom,s.classe,dataUrl=>{
+    s.badgeDone=true; s.badgeDataUrl=dataUrl;
+    // Miniature photo
+    new FileReader().onload=(e=>{
+      s.photoDataUrl=e.target.result;
+      saveStudents(); renderList();
+    });
+    const fr=new FileReader();
+    fr.onload=e=>{ s.photoDataUrl=e.target.result; saveStudents(); renderList(); };
+    fr.readAsDataURL(capBlob);
+
+    const regime=document.querySelector('input[name="regime"]:checked')?.value||'EXT';
+    const sortie=document.querySelector('input[name="sortie"]:checked')?.value||'non';
+    const entry={dataUrl,nom:s.nom,prenom:s.prenom,classe:s.classe,regime,sortie};
+    badgeList.push(entry);
+    const idx=badgeList.length-1;
+
+    const div=document.createElement('div'); div.className='b-thumb';
+    div.innerHTML=`<img src="${dataUrl}"><div class="b-lbl">${s.classe} — ${s.nom} ${s.prenom}</div><button class="b-rm">×</button>`;
+    div.querySelector('.b-rm').addEventListener('click',()=>{badgeList[idx]=null;div.remove();refreshCount();saveBadges();});
+    document.getElementById('bGrid').appendChild(div);
+    document.getElementById('badgeSec').style.display='block';
+    refreshCount(); saveBadges();
+    showMsg('ok',`✓ Badge : ${s.prenom} ${s.nom} (${s.classe})`);
+
+    capBlob=null; photoOK=false;
+    document.getElementById('btnValidate').style.display='none';
+    const next=filtered.find(st=>!st.badgeDone&&st.id!==s.id);
+    if(next)setTimeout(()=>selectStudent(next),700); else renderList();
+
+    document.getElementById('btnGen').innerHTML='🪪 &nbsp; Générer et ajouter au PDF';
+    updateBtns();
+  });
+});
+
+function refreshCount(){
+  const n=badgeList.filter(Boolean).length;
+  document.getElementById('bcnt').textContent=n+' badge(s)';
+  document.getElementById('btnPrev').disabled=n===0;
+  document.getElementById('btnDL').disabled=n===0;
+  if(n===0)document.getElementById('badgeSec').style.display='none';
+}
+
+document.getElementById('btnClr').addEventListener('click',()=>{
+  if(!confirm('Effacer tous les badges ?'))return;
+  badgeList=[]; document.getElementById('bGrid').innerHTML=''; refreshCount();
+  localStorage.removeItem('pb2_badges');
+});
+
+// ════════════════════════════════════════
+// PDF
+// ════════════════════════════════════════
+function getPDFName(valid){
+  const now=new Date();
+  const d=String(now.getDate()).padStart(2,'0')+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+now.getFullYear();
+  const cls=[...new Set(valid.map(b=>b.classe).filter(Boolean))].sort().join('-').replace(/[^a-zA-Z0-9\-_]/g,'');
+  return `${cls||'badges'}_${d}_badges.pdf`;
+}
+
+async function buildPDF(valid){
+  const {jsPDF}=window.jspdf;
+  const doc=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
+  const cols=2,rows=4,mX=12,mY=12,gX=8,gY=6;
+  const bW=(210-mX*2-gX*(cols-1))/cols, bH=(297-mY*2-gY*(rows-1))/rows;
+  let col=0,row=0;
+  // Sauvegarder radios
+  const savedRegime=document.querySelector('input[name="regime"]:checked')?.value||'EXT';
+  const savedSortie=document.querySelector('input[name="sortie"]:checked')?.value||'non';
+  for(let i=0;i<valid.length;i++){
+    if(i>0&&i%(cols*rows)===0){doc.addPage();col=0;row=0;}
+    const x=mX+col*(bW+gX),y=mY+row*(bH+gY);
+    const b=valid[i];
+    document.getElementById(b.regime==='DP'?'rDP':'rEXT').checked=true;
+    document.getElementById(b.sortie==='oui'?'rOui':'rNon').checked=true;
+    await new Promise(res=>{
+      // Reconstruire le blob depuis dataUrl si pas dispo
+      const doIt=blob=>{
+        const hq=document.createElement('canvas');
+        drawBadge(hq,blob,b.nom,b.prenom,b.classe,du=>{ doc.addImage(du,'JPEG',x,y,bW,bH); res(); });
+      };
+      if(b.blob) doIt(b.blob);
+      else fetch(b.dataUrl).then(r=>r.blob()).then(blob=>doIt(blob)).catch(()=>doIt(null));
+    });
+    col++; if(col>=cols){col=0;row++;}
+  }
+  // Restaurer radios
+  document.getElementById(savedRegime==='DP'?'rDP':'rEXT').checked=true;
+  document.getElementById(savedSortie==='oui'?'rOui':'rNon').checked=true;
+  const total=Math.ceil(valid.length/(cols*rows));
+  for(let p=1;p<=total;p++){
+    doc.setPage(p); doc.setFontSize(7); doc.setTextColor(150);
+    doc.text('Page '+p+'/'+total+' — '+(CFG.school||'PhotoBadge V2')+' — '+(CFG.year||''),105,293,{align:'center'});
+  }
+  return{doc,total};
+}
+
+document.getElementById('btnPrev').addEventListener('click',async()=>{
+  const valid=badgeList.filter(Boolean); if(!valid.length)return;
+  document.getElementById('btnPrev').textContent='⏳...';
+  try{
+    const{doc,total}=await buildPDF(valid);
+    window.open(URL.createObjectURL(doc.output('blob')),'_blank');
+    showMsg('ok',`✓ PDF ouvert (${valid.length} badges, ${total} page(s)) — Ctrl+P pour imprimer`);
+  }catch(e){showMsg('err','PDF : '+e.message);}
+  document.getElementById('btnPrev').innerHTML='👁 &nbsp; Visualiser PDF';
+});
+
+document.getElementById('btnDL').addEventListener('click',async()=>{
+  const valid=badgeList.filter(Boolean); if(!valid.length)return;
+  document.getElementById('btnDL').innerHTML='<span class="ld">PDF<span>.</span><span>.</span><span>.</span></span>';
+  try{
+    const{doc,total}=await buildPDF(valid);
+    doc.save(getPDFName(valid));
+    showMsg('ok',`✓ PDF téléchargé : ${valid.length} badge(s), ${total} page(s)`);
+  }catch(e){showMsg('err','PDF : '+e.message);}
+  document.getElementById('btnDL').innerHTML='🖨 &nbsp; Télécharger PDF';
+});
+
+// ════════════════════════════════════════
+// PERSISTANCE
+// ════════════════════════════════════════
+function saveStudents(){
+  try{
+    const d=students.map(s=>({id:s.id,nom:s.nom,prenom:s.prenom,classe:s.classe,regime:s.regime,sortie:s.sortie,badgeDone:s.badgeDone,photoDataUrl:s.photoDataUrl||null}));
+    localStorage.setItem('pb2_students',JSON.stringify(d));
+  }catch(e){}
+}
+
+function restoreStudents(){
+  try{
+    const d=JSON.parse(localStorage.getItem('pb2_students')||'null');
+    if(!d||!d.length)return;
+    students=d.map(s=>({...s,blob:null}));
+    document.getElementById('xlsInfo').style.display='block';
+    document.getElementById('xlsInfo').innerHTML=`✅ <strong>${students.length} élèves</strong> restaurés &nbsp;<button onclick="clearStudents()" style="background:rgba(192,57,43,0.12);border:1px solid var(--red);border-radius:3px;padding:0.12rem 0.45rem;font-size:0.58rem;cursor:pointer;color:var(--red);">Effacer la liste</button>`;
+    buildClassTabs(); filterList();
+  }catch(e){}
+}
+
+function clearStudents(){
+  if(!confirm('Effacer la liste des élèves ?'))return;
+  students=[]; filtered=[]; curStudent=null;
+  localStorage.removeItem('pb2_students');
+  document.getElementById('xlsInfo').style.display='none';
+  document.getElementById('classSel').style.display='none';
+  document.getElementById('listPanel').style.display='none';
+  document.getElementById('selCard').style.display='none';
+}
+
+function saveBadges(){
+  try{
+    const d=badgeList.filter(Boolean).map(b=>({nom:b.nom,prenom:b.prenom,classe:b.classe,regime:b.regime,sortie:b.sortie,dataUrl:b.dataUrl}));
+    localStorage.setItem('pb2_badges',JSON.stringify(d));
+  }catch(e){}
+}
+
+function restoreBadges(){
+  try{
+    const d=JSON.parse(localStorage.getItem('pb2_badges')||'null');
+    if(!d||!d.length)return;
+    d.forEach((b,i)=>{
+      fetch(b.dataUrl).then(r=>r.blob()).then(blob=>{
+        const entry={...b,blob};
+        badgeList.push(entry);
+        const idx=badgeList.length-1;
+        const div=document.createElement('div'); div.className='b-thumb';
+        div.innerHTML=`<img src="${b.dataUrl}"><div class="b-lbl">${b.classe} — ${b.nom} ${b.prenom}</div><button class="b-rm">×</button>`;
+        div.querySelector('.b-rm').addEventListener('click',()=>{badgeList[idx]=null;div.remove();refreshCount();saveBadges();});
+        document.getElementById('bGrid').appendChild(div);
+        document.getElementById('badgeSec').style.display='block';
+        refreshCount();
+      }).catch(()=>{});
+    });
+  }catch(e){}
+}
+
+// ════════════════════════════════════════
+// UTILITAIRES
+// ════════════════════════════════════════
+function showMsg(type,msg){
+  const el=document.getElementById('statusMsg');
+  el.className='status-msg '+(type==='ok'?'ok':'err');
+  el.textContent=msg;
+  clearTimeout(el._t);
+  el._t=setTimeout(()=>el.style.display='none',4500);
+}
+
+// ════════════════════════════════════════
+// DÉMARRAGE
+// ════════════════════════════════════════
+if(loadCFG()&&CFG.school){
+  initApp();
+} else {
+  document.getElementById('schoolName').value='Lycée Français Pierre Loti';
+  document.getElementById('cityName').value='Istanbul · Turquie';
+  document.getElementById('yearVal').value='2025–2026';
+  document.getElementById('logoUrl').value='https://raw.githubusercontent.com/xseorkly/photoeleve/refs/heads/main/logo.jpeg';
+  const p=document.getElementById('setupLogoPreview');
+  p.src='https://raw.githubusercontent.com/xseorkly/photoeleve/refs/heads/main/logo.jpeg';
+  p.style.display='block';
+  document.getElementById('setupScreen').style.display='flex';
+  initStyleButtons();
+}
+
+if('serviceWorker' in navigator) window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
+</script>
+</body>
+</html>
